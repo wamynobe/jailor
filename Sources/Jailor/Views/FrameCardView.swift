@@ -52,6 +52,13 @@ struct FrameCardView: View {
         .background(cardBackground)
         .overlay(cardBorder)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            if store.isEditing {
+                Color.clear
+                    .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .gesture(moveGesture)
+            }
+        }
         .overlay(alignment: .bottomTrailing) {
             resizeHandle
         }
@@ -59,20 +66,6 @@ struct FrameCardView: View {
         .opacity(dimmed ? 0.32 : 1)
         .saturation(dimmed ? 0.25 : 1)
         .animation(.easeOut(duration: 0.14), value: dimmed)
-        .onHover { hovered = $0 }
-        .simultaneousGesture(
-            TapGesture(count: 2).onEnded {
-                if let assignment {
-                    store.focus(assignmentID: assignment.id)
-                }
-            }
-        )
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                store.selectedFrameID = frame.id
-            }
-        )
-        .gesture(moveGesture, including: store.isEditing ? .all : .none)
         .dropDestination(for: String.self) { items, _ in
             guard let payload = items.compactMap(WindowDragPayload.parse).first else { return false }
             store.assignDragPayload(payload, toFrame: frame.id)
@@ -85,7 +78,13 @@ struct FrameCardView: View {
         .contextMenu {
             contextMenu
         }
-        .help(assignment == nil ? L("Drag a window into this frame") : L("Double-click to focus"))
+        .help(assignment == nil ? L("Drag a window into this frame") : L("Hover for actions"))
+        .overlay(alignment: .bottomTrailing) {
+            if hovered, !store.isEditing, let assignment {
+                hoverActions(assignment)
+            }
+        }
+        .onHover { hovered = $0 }
     }
 
     // MARK: Header
@@ -165,39 +164,43 @@ struct FrameCardView: View {
                     .foregroundStyle(.white.opacity(0.40))
 
                 Spacer(minLength: 0)
-
-                if hovered && !store.isEditing {
-                    Button {
-                        store.focus(assignmentID: assignment.id)
-                    } label: {
-                        Image(systemName: "eye")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.78))
-                            .frame(width: 22, height: 22)
-                            .background(Circle().fill(Color.white.opacity(0.12)))
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .help(L("Jump to window"))
-
-                    Button {
-                        store.removeAssignment(assignment.id)
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 8.5, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.72))
-                            .frame(width: 22, height: 22)
-                            .background(Circle().fill(Color.white.opacity(0.10)))
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .help(L("Remove from frame"))
-                }
             }
         }
         .padding(.horizontal, compact ? 7 : 10)
         .padding(.top, 1)
         .padding(.bottom, compact ? 6 : 8)
+    }
+
+    private func hoverActions(_ assignment: WindowAssignment) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "eye")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.78))
+                .frame(width: 24, height: 24)
+                .background(Circle().fill(Color.white.opacity(0.12)))
+                .contentShape(Circle())
+                .onTapGesture {
+                    store.focus(assignmentID: assignment.id)
+                }
+                .help(L("Jump to window"))
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel(L("Jump to window"))
+
+            Image(systemName: "xmark")
+                .font(.system(size: 8.5, weight: .bold))
+                .foregroundStyle(.white.opacity(0.72))
+                .frame(width: 24, height: 24)
+                .background(Circle().fill(Color.white.opacity(0.10)))
+                .contentShape(Circle())
+                .onTapGesture {
+                    store.removeAssignment(forFrame: frame.id)
+                }
+                .help(L("Remove from frame"))
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel(L("Remove from frame"))
+        }
+        .padding(.trailing, 9)
+        .padding(.bottom, 9)
     }
 
     private func emptyContent(compact: Bool) -> some View {
@@ -299,7 +302,7 @@ struct FrameCardView: View {
             }
 
             Button(L("Remove from frame"), role: .destructive) {
-                store.removeAssignment(assignment.id)
+                store.removeAssignment(forFrame: frame.id)
             }
         } else {
             if let selectedID = store.selectedWindowID,
@@ -338,7 +341,7 @@ struct FrameCardView: View {
     // MARK: Gestures
 
     private var moveGesture: some Gesture {
-        DragGesture(minimumDistance: 2)
+        DragGesture(minimumDistance: 0)
             .onChanged { value in
                 guard store.isEditing, canvasSize.width > 1, canvasSize.height > 1 else { return }
                 if dragOrigin == nil {

@@ -11,25 +11,28 @@ struct DashboardView: View {
     @State private var renameDraft = ""
 
     var body: some View {
-        VStack(spacing: 0) {
-            topBar
-            Divider().opacity(0.5)
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                topBar
+                Divider().opacity(0.5)
 
-            if !store.isTrusted {
-                permissionBanner
-            }
-
-            canvas
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .overlay(alignment: .bottom) {
-                    if let report = store.applyReport {
-                        reportBanner(report)
-                    }
+                if !store.isTrusted {
+                    permissionBanner
                 }
 
-            if store.isEditing, let layout = store.activeLayout {
-                FrameInspector(layout: layout)
+                canvas
+                    .frame(height: canvasHeight(totalHeight: geometry.size.height))
+                    .overlay(alignment: .bottom) {
+                        if let report = store.applyReport {
+                            reportBanner(report)
+                        }
+                    }
+
+                if store.isEditing, let layout = store.activeLayout {
+                    FrameInspector(layout: layout)
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .background(Theme.canvas)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -328,6 +331,17 @@ struct DashboardView: View {
 
     // MARK: Canvas
 
+    /// The dashboard is a fixed set of bars around the canvas. Giving the
+    /// canvas an explicit height prevents it from being bottom-aligned or
+    /// clipped when the window/layout proposal is unusual.
+    private func canvasHeight(totalHeight: CGFloat) -> CGFloat {
+        let topBarHeight: CGFloat = 54
+        let dividerHeight: CGFloat = 1
+        let bannerHeight: CGFloat = store.isTrusted ? 0 : 88
+        let inspectorHeight: CGFloat = store.isEditing ? 46 : 0
+        return max(220, totalHeight - topBarHeight - dividerHeight - bannerHeight - inspectorHeight)
+    }
+
     private var canvas: some View {
         GeometryReader { geometry in
             if let layout = store.activeLayout {
@@ -360,7 +374,7 @@ struct DashboardView: View {
                             width: max(54, rect.width - 8),
                             height: max(42, rect.height - 8)
                         )
-                        .offset(x: rect.minX + 4, y: rect.minY + 4)
+                        .position(x: rect.midX, y: rect.midY)
                     }
 
                     if layout.frames.isEmpty {
@@ -369,7 +383,7 @@ struct DashboardView: View {
                             .offset(x: screenRect.minX, y: screenRect.minY)
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
                 .environment(\.colorScheme, .dark)
             } else {
                 Text(L("No layout"))
@@ -381,7 +395,7 @@ struct DashboardView: View {
         .padding(.horizontal, 18)
         .padding(.top, 14)
         .padding(.bottom, 12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity)
     }
 
     private func screenBackground(rect: CGRect) -> some View {

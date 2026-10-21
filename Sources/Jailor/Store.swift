@@ -445,6 +445,17 @@ final class AppStore: ObservableObject {
         }
     }
 
+    /// Removes whatever is assigned to a frame in the active layout.
+    /// Used by the frame-level X button so a stale assignment ID can never
+    /// prevent removal.
+    func removeAssignment(forFrame frameID: UUID) {
+        guard let layout = activeLayout else { return }
+        state.assignments.removeAll { $0.layoutID == layout.id && $0.frameID == frameID }
+        if selectedFrameID == frameID {
+            selectedFrameID = nil
+        }
+    }
+
     func setAssignmentTag(_ id: UUID, tagID: UUID?) {
         guard let index = state.assignments.firstIndex(where: { $0.id == id }) else { return }
         state.assignments[index].tagID = tagID

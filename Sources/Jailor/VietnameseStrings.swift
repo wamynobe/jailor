@@ -100,6 +100,7 @@ enum VietnameseStrings {
         // Frame card
         "Drag a window into this frame": "Kéo cửa sổ vào khung này",
         "Double-click to focus": "Double-click để chuyển tới cửa sổ",
+        "Hover for actions": "Rê chuột để xem thao tác",
         "Running": "Đang chạy",
         "Not running": "Chưa chạy",
         "Drag a window here": "Kéo cửa sổ vào đây",

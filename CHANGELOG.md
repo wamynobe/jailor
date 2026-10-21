@@ -45,8 +45,11 @@ Initial public alpha.
   centering, so Vietnamese diacritics and mixed label lengths stay aligned.
 - The dashboard layout canvas now fills the remaining height and centers the
   screen instead of sitting at the bottom of the window.
-- Frame focus/remove buttons have larger hit targets and no longer conflict
-  with the card's tap gestures, so the X removes the window assignment.
+- Frame focus/remove buttons are rendered in a topmost overlay, have larger hit
+  targets, and the card has no tap gesture outside Edit mode, so both buttons
+  reliably receive clicks; the X removes the assignment by frame ID.
+- Frame hover actions no longer flicker: the hover tracking area now includes
+  the action overlay itself.
 - Language switching no longer recreates the whole window/settings form; only
   localized views update, so switching is fast and preserves scroll/state.
 - The Settings language menu is right-aligned and compact.
